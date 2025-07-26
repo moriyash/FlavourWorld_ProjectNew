@@ -118,24 +118,27 @@ const NotificationsScreen = ({ navigation }) => {
     }
 
     switch (notification.type) {
-      case 'like':
-      case 'comment':
-        if (notification.postId) {
-          if (notification.groupId) {
-            navigation.navigate('GroupDetails', { 
-              groupId: notification.groupId,
-            });
-          } 
-        }
-        break;
-      
       case 'follow':
         if (notification.fromUserId) {
           navigation.navigate('Profile', { userId: notification.fromUserId });
         }
         break;
       
+      case 'like':
+      case 'comment':
       case 'group_post':
+        if (notification.postId) {
+          console.log('New group post - opening full recipe view');
+          navigation.navigate('PostModal', {
+            postId: notification.postId,
+            groupId: notification.groupId || null,
+            isGroupPost: !!notification.groupId,
+            postTitle: notification.postTitle || 'Recipe',
+            postImage: notification.postImage || null
+          });
+        }
+        break;
+
       case 'group_join_request':
       case 'group_request_approved':
         if (notification.groupId) {

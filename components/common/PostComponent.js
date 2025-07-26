@@ -187,7 +187,7 @@ const handleLike = async () => {
         }
       }
     } else {
-      console.log('🍳 Using recipe service for like/unlike...');
+      console.log('Using recipe service for like/unlike...');
       if (isLiked) {
         console.log(' Unliking recipe...');
         result = await recipeService.unlikeRecipe(postId, currentUserId);
@@ -397,30 +397,33 @@ const handleAddComment = async () => {
     }
   };
 
-  const renderComment = ({ item }) => (
-    <View style={styles.commentItem}>
-      <UserAvatar
-        uri={item.userAvatar}
-        name={item.userName || 'Anonymous'}
-        size={32}
-      />
-      <View style={styles.commentContent}>
-        <View style={styles.commentHeader}>
-          <Text style={styles.commentUserName}>{item.userName || 'Anonymous'}</Text>
-          <Text style={styles.commentTime}>{formatDate(item.createdAt)}</Text>
-          {(item.userId === currentUserId || item.userId === currentUser?.id || item.userId === currentUser?._id) && (
-            <TouchableOpacity 
-              onPress={() => handleDeleteComment(item._id)}
-              style={styles.deleteCommentButton}
-            >
-              <Ionicons name="trash-outline" size={16} color={FLAVORWORLD_COLORS.danger} />
-            </TouchableOpacity>
-          )}
+  const renderComment = ({ item }) => {
+    console.log('Comment data:', item); 
+    return(
+      <View style={styles.commentItem}>
+        <UserAvatar
+          uri={item.userAvatar}
+          name={item.userName || 'Anonymous'}
+          size={32}
+        />
+        <View style={styles.commentContent}>
+          <View style={styles.commentHeader}>
+            <Text style={styles.commentUserName}>{item.userName || 'Anonymous'}</Text>
+            <Text style={styles.commentTime}>{formatDate(item.createdAt)}</Text>
+            {(item.userId === currentUserId || item.userId === currentUser?.id || item.userId === currentUser?._id) && (
+              <TouchableOpacity 
+                onPress={() => handleDeleteComment(item._id)}
+                style={styles.deleteCommentButton}
+              >
+                <Ionicons name="trash-outline" size={16} color={FLAVORWORLD_COLORS.danger} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <Text style={styles.commentText}>{item.text}</Text>
         </View>
-        <Text style={styles.commentText}>{item.text}</Text>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderOptionsModal = () => {
     const isOwner = currentUserId && (

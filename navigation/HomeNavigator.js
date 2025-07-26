@@ -19,6 +19,7 @@ import GroupChatConversationScreen from '../components/screens/Chat/GroupChatCon
 import UserSearchScreen from '../components/screens/Chat/UserSearchScreen';
 import GroupChatSettingsScreen from '../components/screens/Chat/GroupChatSettingsScreen';
 import NotificationsScreen from '../components/screens/Notifications/NotificationsScreen';
+import PostModalScreen from '../components/screens/posts/PostModalScreen';
 
 const Stack = createStackNavigator(); 
 
@@ -193,6 +194,15 @@ export default function HomeNavigator() {
         options={{ 
           headerShown: false,
           presentation: 'modal'
+        }}
+      />
+
+      <Stack.Screen 
+        name="PostModal" 
+        component={PostModalScreen}
+        options={{
+          presentation: 'modal',
+          headerShown: false,
         }}
       />
 

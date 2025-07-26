@@ -3,6 +3,8 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../components/screens/auth/LoginScreen';
 import RegisterScreen from '../components/screens/auth/RegisterScreen';
 import ForgotPasswordScreen from '../components/screens/auth/ForgotPasswordScreen';
+import NewPasswordScreen from '../components/screens/auth/NewPasswordScreen';
+import PasswordResetCodeScreen from '../components/screens/auth/PasswordResetCodeScreen';
 
 
 
@@ -27,6 +29,14 @@ const AuthNavigator = () => {
       <Stack.Screen 
         name="ForgotPassword" 
         component={ForgotPasswordScreen} 
+      />
+      <Stack.Screen 
+        name="PasswordResetCode" 
+        component={PasswordResetCodeScreen} 
+      />
+      <Stack.Screen 
+        name="NewPassword" 
+        component={NewPasswordScreen} 
       />
     </Stack.Navigator>
   );

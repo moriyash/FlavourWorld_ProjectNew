@@ -5,6 +5,8 @@ const cors = require('cors');
 const multer = require('multer');
 const { Server } = require('socket.io');
 const http = require('http');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 const app = express();
 
@@ -22,6 +24,264 @@ app.use((req, res, next) => {
   next();
 });
 
+const PasswordResetSchema = new mongoose.Schema({
+  email: { type: String, required: true },
+  code: { type: String, required: true },
+  verificationToken: { type: String },
+  createdAt: { type: Date, default: Date.now, expires: 900 }, 
+  used: { type: Boolean, default: false }
+});
+
+const PasswordReset = mongoose.model('PasswordReset', PasswordResetSchema);
+
+const emailTransporter = nodemailer.createTransport({
+  service: 'gmail', 
+  auth: {
+    user: process.env.EMAIL_USER, 
+    pass: process.env.EMAIL_PASS  
+  }
+});
+
+const generateResetCode = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString(); 
+};
+
+const sendResetEmail = async (email, code) => {
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: 'FlavorWorld - Password Reset Code',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #F5A623, #4ECDC4); padding: 20px; text-align: center;">
+          <h1 style="color: white; margin: 0;">🍴 FlavorWorld</h1>
+        </div>
+        
+        <div style="padding: 30px; background: #FFF8F0;">
+          <h2 style="color: #1F3A93; text-align: center;">Password Reset Code</h2>
+          
+          <p style="font-size: 16px; color: #2C3E50; line-height: 1.6;">
+            Hi there! 👋
+          </p>
+          
+          <p style="font-size: 16px; color: #2C3E50; line-height: 1.6;">
+            We received a request to reset your FlavorWorld password. Use the code below to continue:
+          </p>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <div style="background: white; border: 3px solid #F5A623; border-radius: 15px; 
+                        display: inline-block; padding: 20px 30px; font-size: 32px; 
+                        font-weight: bold; color: #1F3A93; letter-spacing: 8px;">
+              ${code}
+            </div>
+          </div>
+          
+          <p style="font-size: 14px; color: #7F8C8D; text-align: center;">
+            This code will expire in 15 minutes for security reasons.
+          </p>
+          
+          <p style="font-size: 16px; color: #2C3E50; line-height: 1.6;">
+            If you didn't request this password reset, you can safely ignore this email.
+          </p>
+          
+          <div style="border-top: 2px solid #E8E8E8; margin-top: 30px; padding-top: 20px; text-align: center;">
+            <p style="font-size: 14px; color: #7F8C8D;">
+              Happy cooking! 🍳<br>
+              The FlavorWorld Team
+            </p>
+          </div>
+        </div>
+      </div>
+    `
+  };
+
+  try {
+    await emailTransporter.sendMail(mailOptions);
+    console.log('Reset email sent successfully to:', email);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+app.post('/api/auth/check-email', async (req, res) => {
+  try {
+    console.log('Checking email existence');
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    
+    console.log('Email check result:', { email, exists: !!user });
+    
+    res.json({
+      success: true,
+      exists: !!user
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to check email' });
+  }
+});
+
+app.post('/api/auth/send-reset-code', async (req, res) => {
+  try {
+    console.log('Sending password reset code');
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'Email not found' });
+    }
+
+    const resetCode = generateResetCode();
+    
+    await PasswordReset.deleteMany({ email: email.toLowerCase().trim() });
+    
+    const passwordReset = new PasswordReset({
+      email: email.toLowerCase().trim(),
+      code: resetCode
+    });
+    
+    await passwordReset.save();
+    
+    const emailResult = await sendResetEmail(email, resetCode);
+    
+    if (emailResult.success) {
+      console.log('Reset code sent successfully');
+      res.json({
+        success: true,
+        message: 'Reset code sent successfully'
+      });
+    } else {
+      res.status(500).json({ message: 'Failed to send reset email' });
+    }
+
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to send reset code' });
+  }
+});
+
+app.post('/api/auth/verify-reset-code', async (req, res) => {
+  try {
+    console.log('Verifying reset code');
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { email, code } = req.body;
+
+    if (!email || !code) {
+      return res.status(400).json({ message: 'Email and code are required' });
+    }
+
+    console.log('Looking for reset record:', { email, code });
+
+    const resetRecord = await PasswordReset.findOne({
+      email: email.toLowerCase().trim(),
+      code: code.toString(),
+      used: false
+    });
+
+    if (!resetRecord) {
+      console.log('Invalid or expired reset code');
+      return res.status(400).json({ message: 'Invalid or expired reset code' });
+    }
+
+    console.log('Reset record found:', resetRecord._id);
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    console.log('Generated verification token:', verificationToken);
+    
+    resetRecord.verificationToken = verificationToken;
+    await resetRecord.save();
+    
+    console.log('Verification token saved to database');
+    console.log('Reset code verified successfully');
+    
+    res.json({
+      success: true,
+      message: 'Code verified successfully',
+      verificationToken: verificationToken
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to verify reset code' });
+  }
+});
+
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    console.log('Resetting password');
+    
+    if (!isMongoConnected()) {
+      return res.status(503).json({ message: 'Database not available' });
+    }
+
+    const { email, code, newPassword, verificationToken } = req.body;
+
+    if (!email || !code || !newPassword || !verificationToken) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({ 
+        message: 'Password must contain at least 8 characters, including uppercase and lowercase letters, a number and a special character' 
+      });
+    }
+
+    const resetRecord = await PasswordReset.findOne({
+      email: email.toLowerCase().trim(),
+      code: code.toString(),
+      verificationToken: verificationToken,
+      used: false
+    });
+
+    if (!resetRecord) {
+      console.log('Invalid reset attempt');
+      return res.status(400).json({ message: 'Invalid or expired reset code' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    resetRecord.used = true;
+    await resetRecord.save();
+
+    console.log('Password reset successfully for:', email);
+    res.json({
+      success: true,
+      message: 'Password reset successfully'
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to reset password' });
+  }
+});
 
 // GROUP POST ROUTES
 

@@ -30,11 +30,50 @@ const ForgotPasswordScreen = ({ navigation }) => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [emailExists, setEmailExists] = useState(null); 
 
   const handleEmailChange = (text) => {
     setEmail(text);
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     setIsFormValid(emailRegex.test(text));
+    
+    setEmailExists(null);
+  };
+
+  const checkEmailExists = async () => {
+    if (!isFormValid) return;
+
+    setIsCheckingEmail(true);
+    try {
+      const result = await authService.checkEmailExists(email.trim());
+      
+      if (result.success) {
+        setEmailExists(result.exists);
+        if (!result.exists) {
+          Alert.alert(
+            'Email Not Found', 
+            'This email address is not registered. Please check your email or register for a new account.',
+            [
+              {
+                text: 'Register',
+                onPress: () => navigation.navigate('Register')
+              },
+              {
+                text: 'Try Again',
+                style: 'cancel'
+              }
+            ]
+          );
+        }
+      } else {
+        Alert.alert('Error', 'Failed to verify email. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Connection failed. Please try again.');
+    } finally {
+      setIsCheckingEmail(false);
+    }
   };
 
   const handleResetPassword = async () => {
@@ -43,16 +82,29 @@ const ForgotPasswordScreen = ({ navigation }) => {
       return;
     }
 
+    if (emailExists === null) {
+      await checkEmailExists();
+      if (emailExists === false) return; 
+    }
+
+    if (emailExists === false) {
+      Alert.alert('Error', 'Please enter a registered email address');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await authService.forgotPassword(email.trim());
+      const result = await authService.sendPasswordResetCode(email.trim());
 
       if (result.success) {
-        setResetSent(true);
-        Alert.alert('Success', 'Password reset instructions sent to your email!');
+        console.log('Reset code sent successfully');
+        navigation.navigate('PasswordResetCode', {
+          email: email.trim(),
+          resetToken: result.resetToken || null
+        });
       } else {
-        Alert.alert('Error', result.message);
+        Alert.alert('Error', result.message || 'Failed to send reset code');
       }
     } catch (error) {
       Alert.alert('Error', 'Connection failed. Please try again.');
@@ -60,6 +112,16 @@ const ForgotPasswordScreen = ({ navigation }) => {
       setIsLoading(false);
     }
   };
+
+  const getButtonText = () => {
+    if (isLoading) return null; 
+    if (isCheckingEmail) return 'Checking Email...';
+    if (emailExists === null && isFormValid) return 'Continue';
+    if (emailExists === true) return 'Send Reset Code';
+    return 'Continue';
+  };
+
+  const isButtonDisabled = !isFormValid || isLoading || isCheckingEmail;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: FLAVORWORLD_COLORS.background }}>
@@ -78,7 +140,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
           <Text style={styles.subtitle}>
             {resetSent 
               ? "Password reset instructions sent!" 
-              : "Enter your email to receive reset instructions"}
+              : "Enter your email to receive a reset code"}
           </Text>
         </View>
 
@@ -90,23 +152,40 @@ const ForgotPasswordScreen = ({ navigation }) => {
                 value={email}
                 onChangeText={handleEmailChange}
                 placeholder="example@FlavorWorld.com"
-                style={styles.emailInput}
+                style={[
+                  styles.emailInput,
+                  emailExists === true && styles.emailInputValid,
+                  emailExists === false && styles.emailInputInvalid
+                ]}
               />
+              
+              {/**/}
+              {emailExists === true && (
+                <View style={styles.emailStatus}>
+                  <Text style={styles.emailStatusTextValid}>✓ Email found</Text>
+                </View>
+              )}
+              {emailExists === false && (
+                <View style={styles.emailStatus}>
+                  <Text style={styles.emailStatusTextInvalid}>✗ Email not registered</Text>
+                </View>
+              )}
             </View>
 
             <View style={styles.formAction}>
               <TouchableOpacity
-                onPress={handleResetPassword}
-                disabled={!isFormValid || isLoading}
+                onPress={emailExists === null ? checkEmailExists : handleResetPassword}
+                disabled={isButtonDisabled}
                 style={[
                   styles.btn,
-                  (!isFormValid || isLoading) && styles.btnDisabled
+                  isButtonDisabled && styles.btnDisabled,
+                  emailExists === true && styles.btnReady
                 ]}
               >
-                {isLoading ? (
+                {(isLoading || isCheckingEmail) ? (
                   <ActivityIndicator size="small" color={FLAVORWORLD_COLORS.white} />
                 ) : (
-                  <Text style={styles.btnText}>Reset Password</Text>
+                  <Text style={styles.btnText}>{getButtonText()}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -124,10 +203,10 @@ const ForgotPasswordScreen = ({ navigation }) => {
               <Text style={styles.successEmoji}>✅</Text>
             </View>
             <Text style={styles.successMessage}>
-              We've sent an email to {email} with instructions to reset your password.
+              We've sent a reset code to {email}.
             </Text>
             <Text style={styles.successSubtext}>
-              Check your inbox and follow the link to create a new password.
+              Check your inbox and enter the code in the next screen.
             </Text>
             <View style={styles.formAction}>
               <TouchableOpacity
@@ -229,6 +308,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: FLAVORWORLD_COLORS.text,
   },
+  emailInputValid: {
+    borderColor: FLAVORWORLD_COLORS.success,
+    backgroundColor: '#F0FFF4',
+  },
+  emailInputInvalid: {
+    borderColor: FLAVORWORLD_COLORS.danger,
+    backgroundColor: '#FFF5F5',
+  },
+  emailStatus: {
+    marginTop: 8,
+    alignItems: 'flex-start',
+  },
+  emailStatusTextValid: {
+    fontSize: 14,
+    color: FLAVORWORLD_COLORS.success,
+    fontWeight: '600',
+  },
+  emailStatusTextInvalid: {
+    fontSize: 14,
+    color: FLAVORWORLD_COLORS.danger,
+    fontWeight: '600',
+  },
   btn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,6 +349,9 @@ const styles = StyleSheet.create({
     backgroundColor: FLAVORWORLD_COLORS.textLight,
     elevation: 0,
     shadowOpacity: 0,
+  },
+  btnReady: {
+    backgroundColor: FLAVORWORLD_COLORS.success,
   },
   btnText: {
     fontSize: 18,

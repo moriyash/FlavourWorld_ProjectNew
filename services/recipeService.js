@@ -94,7 +94,7 @@ export const recipeService = {
 
   createRecipe: async (recipeData) => {
   try {
-    console.log('🍳 Creating recipe on server...', recipeData.title);
+    console.log(' Creating recipe on server...', recipeData.title);
     
     if (!recipeData || !recipeData.title) {
       return {
@@ -103,104 +103,79 @@ export const recipeService = {
       };
     }
 
-    // 🔧 בדיקה מפורטת של נתוני המשתמש
     if (!recipeData.userId) {
-      console.error('❌ No userId provided');
+      console.error(' No userId provided');
       return {
         success: false,
         message: 'User information is missing. Please try logging in again.'
       };
     }
 
-    // 🆕 בדיקה למדיה (תמונה או וידאו)
-    const hasMedia = recipeData.media || recipeData.image || recipeData.video;
-    const mediaType = recipeData.mediaType || 
-                     (recipeData.video ? 'video' : 
-                      recipeData.image || recipeData.media ? 'image' : 'none');
+    const hasImage = recipeData.image || recipeData.media;
 
-    console.log('📊 Media info:', {
-      hasMedia: !!hasMedia,
-      mediaType: mediaType,
-      hasVideo: !!(recipeData.video || (recipeData.media && mediaType === 'video')),
-      hasImage: !!(recipeData.image || (recipeData.media && mediaType === 'image')),
-      mediaUri: hasMedia ? 'present' : 'none'
+    console.log(' Image info:', {
+      hasImage: !!hasImage,
+      imageUri: hasImage ? 'present' : 'none'
     });
 
-    if (hasMedia) {
-      console.log(`📸 ${mediaType} detected, using FormData...`);
+    if (hasImage) {
+      console.log('Image detected, using FormData...');
       
       const formData = new FormData();
       
-      // הוסף את כל הנתונים הבסיסיים
       formData.append('title', recipeData.title || '');
       formData.append('description', recipeData.description || '');
       formData.append('ingredients', recipeData.ingredients || '');
       formData.append('instructions', recipeData.instructions || '');
-      formData.append('category', recipeData.category || 'Asian'); // 🔧 ברירת מחדל תקינה
-      formData.append('meatType', recipeData.meatType || 'Mixed'); // 🔧 ברירת מחדל תקינה
-      formData.append('prepTime', Math.max(0, recipeData.prepTime || 0).toString()); // 🔧 וידוא ערך חיובי
-      formData.append('servings', Math.max(1, recipeData.servings || 1).toString()); // 🔧 וידוא ערך חיובי
+      formData.append('category', recipeData.category || 'Asian'); 
+      formData.append('meatType', recipeData.meatType || 'Mixed');
+      formData.append('prepTime', Math.max(0, recipeData.prepTime || 0).toString()); 
+      formData.append('servings', Math.max(1, recipeData.servings || 1).toString()); 
       formData.append('userId', recipeData.userId || '');
       formData.append('userName', recipeData.userName || 'Anonymous Chef');
       formData.append('userAvatar', recipeData.userAvatar || '');
-      formData.append('mediaType', mediaType);
 
-      // 🆕 הוסף את המדיה בהתאם לסוג
-      const mediaUri = recipeData.media || recipeData.video || recipeData.image;
+      const imageUri = recipeData.image || recipeData.media;
       
-      if (mediaType === 'video') {
-        formData.append('video', {
-          uri: mediaUri,
-          type: 'video/mp4',
-          name: 'recipe.mp4',
-        });
-        console.log('🎥 Video file added to FormData');
-      } else if (mediaType === 'image') {
-        // תמונה
-        formData.append('image', {
-          uri: mediaUri,
-          type: 'image/jpeg',
-          name: 'recipe.jpg',
-        });
-        console.log('📷 Image file added to FormData');
-      }
-
-      // 🆕 timeout מותאם לסוג המדיה
-      const uploadTimeout = mediaType === 'video' ? 300000 : 120000; // 5 דקות לוידאו, 2 דקות לתמונה
+      formData.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'recipe.jpg',
+      });
+      console.log('Image file added to FormData');
 
       const response = await api.post('/recipes', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: uploadTimeout,
+        timeout: 120000, 
         onUploadProgress: (progressEvent) => {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          console.log(`📊 Upload progress: ${progress}%`);
+          console.log(`Upload progress: ${progress}%`);
         }
       });
 
-      console.log(`✅ Recipe with ${mediaType} uploaded successfully!`);
+      console.log('Recipe with image uploaded successfully!');
       return { success: true, data: response.data };
 
     } else {
-      console.log('📄 No media, using JSON...');
+      console.log('No image, using JSON...');
       
       const jsonData = {
         title: recipeData.title,
         description: recipeData.description,
         ingredients: recipeData.ingredients,
         instructions: recipeData.instructions,
-        category: recipeData.category || 'Asian', // 🔧 ברירת מחדל תקינה
-        meatType: recipeData.meatType || 'Mixed', // 🔧 ברירת מחדל תקינה
-        prepTime: Math.max(0, recipeData.prepTime || 0), // 🔧 וידוא ערך חיובי
-        servings: Math.max(1, recipeData.servings || 1), // 🔧 וידוא ערך חיובי
+        category: recipeData.category || 'Asian', 
+        meatType: recipeData.meatType || 'Mixed', 
+        prepTime: Math.max(0, recipeData.prepTime || 0), 
+        servings: Math.max(1, recipeData.servings || 1), 
         userId: recipeData.userId || '',
         userName: recipeData.userName || 'Anonymous Chef',
-        userAvatar: recipeData.userAvatar || null,
-        mediaType: 'none' // 🆕 הוסף mediaType גם לפוסטים ללא מדיה
+        userAvatar: recipeData.userAvatar || null
       };
 
-      console.log('📤 Sending JSON data:', {
+      console.log('Sending JSON data:', {
         ...jsonData,
         userId: jsonData.userId,
         userName: jsonData.userName,
@@ -214,14 +189,14 @@ export const recipeService = {
         },
       });
 
-      console.log('✅ Recipe without media uploaded successfully!');
+      console.log('Recipe without image uploaded successfully!');
       return { success: true, data: response.data };
     }
 
   } catch (error) {
     let errorMessage = 'Failed to create recipe';
     
-    console.error('❌ Recipe creation error details:', {
+    console.error('Recipe creation error details:', {
       message: error.message,
       response: error.response?.data,
       status: error.response?.status,
@@ -231,24 +206,23 @@ export const recipeService = {
     if (error.response) {
       errorMessage = error.response.data?.message || `Server error: ${error.response.status}`;
       
-      // 🔧 הודעות שגיאה ספציפיות
       if (error.response.status === 400) {
         const validationDetails = error.response.data?.errors || [];
         if (validationDetails.length > 0) {
           errorMessage = `Validation error: ${validationDetails.join(', ')}`;
         }
       } else if (error.response.status === 413) {
-        errorMessage = 'File too large. Please use a smaller image or video.';
+        errorMessage = 'Image too large. Please use a smaller image.';
       }
     } else if (error.request) {
       errorMessage = 'No response from server. Check your connection.';
     } else if (error.code === 'ECONNABORTED') {
-      errorMessage = 'Upload took too long. Please try again with a smaller file.';
+      errorMessage = 'Upload took too long. Please try again with a smaller image.';
     } else {
       errorMessage = error.message || 'Unknown error occurred';
     }
     
-    console.error('❌ Recipe creation error:', errorMessage);
+    console.error('Recipe creation error:', errorMessage);
     
     return {
       success: false,
@@ -257,27 +231,29 @@ export const recipeService = {
     };
   }
 },
+
 getAllRecipes: async (userId = null) => {
   try {
     if (userId) {
-      console.log('🔄 Fetching personalized feed...');
+      console.log(' Fetching personalized feed...');
       const result = await recipeService.getFeed(userId);
       return result;
     } else {
-      console.log('📚 Fetching all recipes from server...');
+      console.log('Fetching all recipes from server...');
       const response = await api.get('/recipes');
-      console.log(`📊 Server response: ${response.data?.length || 0} recipes`);
+      console.log(` Server response: ${response.data?.length || 0} recipes`);
       
       return { success: true, data: response.data };
     }
   } catch (error) {
-    console.error('❌ Get recipes error:', error.message);
+    console.error(' Get recipes error:', error.message);
     return {
       success: false,
       message: error.response?.data?.message || error.message || 'Failed to fetch recipes'
     };
   }
 },
+
   getRecipeById: async (recipeId) => {
     try {
       const response = await api.get(`/recipes/${recipeId}`);
@@ -290,71 +266,51 @@ getAllRecipes: async (userId = null) => {
     }
   },
 
-  updateRecipe: async (recipeId, updateData, mediaUri = null, mediaType = null) => {
-  try {
-    console.log(' Updating recipe...', recipeId);
-    console.log(' Update data:', updateData);
-    console.log(' Media URI:', mediaUri);
-    console.log(' Media Type:', mediaType);
-    
-    const formData = new FormData();
-    
-    formData.append('title', updateData.title || '');
-    formData.append('description', updateData.description || '');
-    formData.append('ingredients', updateData.ingredients || '');
-    formData.append('instructions', updateData.instructions || '');
-    formData.append('category', updateData.category || 'General');
-    formData.append('meatType', updateData.meatType || 'Mixed');
-    formData.append('prepTime', updateData.prepTime?.toString() || '0');
-    formData.append('servings', updateData.servings?.toString() || '1');
-    formData.append('userId', updateData.userId || '');
-    formData.append('mediaType', updateData.mediaType || 'none');
+  updateRecipe: async (recipeId, updateData, imageUri = null) => {
+    try {
+      console.log(' Updating recipe...', recipeId);
+      console.log(' Update data:', updateData);
+      
+      const formData = new FormData();
+      
+      formData.append('title', updateData.title || '');
+      formData.append('description', updateData.description || '');
+      formData.append('ingredients', updateData.ingredients || '');
+      formData.append('instructions', updateData.instructions || '');
+      formData.append('category', updateData.category || 'General');
+      formData.append('meatType', updateData.meatType || 'Mixed');
+      formData.append('prepTime', updateData.prepTime?.toString() || '0');
+      formData.append('servings', updateData.servings?.toString() || '1');
+      formData.append('userId', updateData.userId || '');
 
-    // 🆕 טיפול בווידאו וגם בתמונה
-    if (mediaUri) {
-      if (mediaType === 'video' || mediaUri.includes('.mp4') || mediaUri.includes('video')) {
-        console.log(' Adding new video to update');
-        formData.append('video', {
-          uri: mediaUri,
-          type: 'video/mp4',
-          name: 'recipe-video.mp4',
-        });
-      } else {
+      if (imageUri) {
         console.log(' Adding new image to update');
         formData.append('image', {
-          uri: mediaUri,
+          uri: imageUri,
           type: 'image/jpeg',
           name: 'recipe-image.jpg',
         });
-      }
-    } else {
-      // שמירת מדיה קיימת
-      if (updateData.image) {
+      } else if (updateData.image) {
         console.log(' Keeping existing image');
         formData.append('image', updateData.image);
       }
-      if (updateData.video) {
-        console.log(' Keeping existing video');
-        formData.append('video', updateData.video);
-      }
-    }
 
-    const response = await api.put(`/recipes/${recipeId}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      timeout: 120000,
-      onUploadProgress: (progressEvent) => {
-        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        console.log(` Update progress: ${progress}%`);
-      }
-    });
+      const response = await api.put(`/recipes/${recipeId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000,
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(` Update progress: ${progress}%`);
+        }
+      });
 
-    console.log(' Recipe updated successfully');
-    return {
-      success: true,
-      data: response.data
-    };
+      console.log(' Recipe updated successfully');
+      return {
+        success: true,
+        data: response.data
+      };
 
     } catch (error) {
       
@@ -377,6 +333,7 @@ getAllRecipes: async (userId = null) => {
       };
     }
   },
+
 
   
   deleteRecipe: async (recipeId, postData = null) => {

@@ -582,7 +582,7 @@ const HomeScreen = ({ navigation }) => {
           onPress={() => setShowCreateModal(true)}
         >
           <Ionicons name="camera-outline" size={20} color={FLAVORWORLD_COLORS.secondary} />
-          <Text style={styles.createPostButtonText}>Photo/Video</Text>
+          <Text style={styles.createPostButtonText}>Photo</Text>
           
         </TouchableOpacity>
         
@@ -903,7 +903,6 @@ const styles = StyleSheet.create({
     backgroundColor: FLAVORWORLD_COLORS.background,
     borderRadius: 20,
   },
-  // 🆕 סטיילים לבוחר סוג פיד
   feedTypeContainer: {
     backgroundColor: FLAVORWORLD_COLORS.white,
     borderBottomWidth: 1,

@@ -16,7 +16,6 @@ import {
   SafeAreaView,
   Share,
 } from 'react-native';
-import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 
 import { Ionicons } from '@expo/vector-icons';
@@ -86,11 +85,8 @@ const PostComponent = ({
     meatType: '',
     prepTime: 0,
     servings: 0,
-    image: '',
-    video: '',
-    mediaType: 'none'
+    image: ''
   });
-  const [editMediaType, setEditMediaType] = useState('none');
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -166,134 +162,64 @@ const PostComponent = ({
 
   const renderMedia = () => {
     const hasImage = safePost.image;
-    const hasVideo = safePost.video;
-    const mediaType = safePost.mediaType || (hasImage ? 'image' : hasVideo ? 'video' : 'none');
 
     console.log(' Rendering media:', { 
-      mediaType, 
-      hasImage: !!hasImage, 
-      hasVideo: !!hasVideo,
-      imageLength: hasImage ? hasImage.length : 0,
-      videoLength: hasVideo ? hasVideo.length : 0
+      hasImage: !!hasImage,
+      imageLength: hasImage ? hasImage.length : 0
     });
 
-    if (mediaType === 'none' && !hasImage && !hasVideo) {
+    if (!hasImage) {
       console.log(' No media to display');
       return null;
     }
 
     return (
       <View style={styles.mediaContainer}>
-        {(mediaType === 'image' || (hasImage && !hasVideo)) && (
-          <TouchableOpacity onPress={() => setShowFullRecipe(true)}>
-            <Image 
-              source={{ uri: safePost.image }} 
-              style={styles.recipeImage}
-              resizeMode="cover"
-              onError={(error) => {
-                console.log(' Image load error:', error);
-              }}
-              onLoad={() => {
-                console.log(' Image loaded successfully');
-              }}
-            />
-          </TouchableOpacity>
-        )}
-        
-        {(mediaType === 'video' || (hasVideo && !hasImage)) && (
-          <View style={styles.videoWrapper}>
-            <Video
-              source={{ uri: safePost.video }}
-              rate={1.0}
-              volume={1.0}
-              isMuted={false}
-              resizeMode="cover"
-              shouldPlay={false}
-              isLooping={false}
-              style={styles.recipeVideo}
-              useNativeControls={true}
-              onError={(error) => {
-                console.log(' Video load error:', error);
-              }}
-              onLoad={() => {
-                console.log(' Video loaded successfully');
-              }}
-            />
-            
-            <View style={styles.videoIndicator}>
-              <Ionicons name="play-circle" size={20} color={FLAVORWORLD_COLORS.white} />
-              <Text style={styles.videoIndicatorText}>Video Recipe</Text>
-            </View>
-          </View>
-        )}
+        <TouchableOpacity onPress={() => setShowFullRecipe(true)}>
+          <Image 
+            source={{ uri: safePost.image }} 
+            style={styles.recipeImage}
+            resizeMode="cover"
+            onError={(error) => {
+              console.log(' Image load error:', error);
+            }}
+            onLoad={() => {
+              console.log(' Image loaded successfully');
+            }}
+          />
+        </TouchableOpacity>
       </View>
     );
   };
 
   const renderFullRecipeMedia = () => {
     const hasImage = safePost.image;
-    const hasVideo = safePost.video;
-    const mediaType = safePost.mediaType || (hasImage ? 'image' : hasVideo ? 'video' : 'none');
 
     console.log(' Rendering full screen media:', { 
-      mediaType, 
-      hasImage: !!hasImage, 
-      hasVideo: !!hasVideo 
+      hasImage: !!hasImage
     });
 
-    if (mediaType === 'none' && !hasImage && !hasVideo) {
+    if (!hasImage) {
       return (
         <View style={styles.noMediaPlaceholder}>
           <Ionicons name="restaurant-outline" size={80} color={FLAVORWORLD_COLORS.textLight} />
-          <Text style={styles.noMediaText}>No media available</Text>
-        </View>
-      );
-    }
-
-    if ((mediaType === 'image' || (hasImage && !hasVideo))) {
-      return (
-        <Image 
-          source={{ uri: safePost.image }} 
-          style={styles.fullRecipeImage} 
-          resizeMode="cover"
-          onError={(error) => {
-            console.log(' Full image load error:', error);
-          }}
-          onLoad={() => {
-            console.log(' Full image loaded successfully');
-          }}
-        />
-      );
-    }
-
-    if (mediaType === 'video' || (hasVideo && !hasImage)) {
-      return (
-        <View style={styles.fullRecipeVideoWrapper}>
-          <Video
-            source={{ uri: safePost.video }}
-            rate={1.0}
-            volume={1.0}
-            isMuted={false}
-            resizeMode="contain"
-            shouldPlay={false}
-            isLooping={false}
-            style={styles.fullRecipeVideo}
-            useNativeControls={true}
-            onError={(error) => {
-              console.log(' Full video load error:', error);
-            }}
-            onLoad={() => {
-              console.log(' Full video loaded successfully');
-            }}
-          />
+          <Text style={styles.noMediaText}>No image available</Text>
         </View>
       );
     }
 
     return (
-      <View style={styles.noMediaPlaceholder}>
-        <Text style={styles.noMediaText}>Media not available</Text>
-      </View>
+      <Image 
+        source={{ uri: safePost.image }} 
+        style={styles.fullRecipeImage} 
+        resizeMode="cover"
+        onError={(error) => {
+          console.log(' Full image load error:', error);
+        }}
+        onLoad={() => {
+          console.log(' Full image loaded successfully');
+        }}
+      />
     );
   };
   
@@ -491,10 +417,6 @@ const PostComponent = ({
   const handleEdit = () => {
     setShowOptionsModal(false);
     
-    const hasImage = safePost.image && safePost.image.trim() !== '';
-    const hasVideo = safePost.video && safePost.video.trim() !== '';
-    const currentMediaType = safePost.mediaType || (hasImage ? 'image' : hasVideo ? 'video' : 'none');
-    
     setEditData({
       title: safePost.title || '',
       description: safePost.description || '',
@@ -504,12 +426,9 @@ const PostComponent = ({
       meatType: safePost.meatType || '',
       prepTime: safePost.prepTime || 0,
       servings: safePost.servings || 0,
-      image: hasImage ? safePost.image : '',
-      video: hasVideo ? safePost.video : '',
-      mediaType: currentMediaType
+      image: safePost.image || ''
     });
     
-    setEditMediaType(currentMediaType);
     setShowEditModal(true);
   };
 
@@ -570,18 +489,17 @@ const PostComponent = ({
     try {
       const shareContent = {
         message: `Check out this amazing recipe: ${safePost.title || 'Delicious Recipe'}\n\n${safePost.description || ''}`,
-        url: `https://flavorworld.com/recipe/${safePost.id}`, // הקישור לאפליקציה שלך
+        url: `https://flavorworld.com/recipe/${safePost.id}`,
         title: `${safePost.title || 'Recipe'} - Recipe from FlavorWorld`,
       };
 
       const result = await Share.share(shareContent, {
         dialogTitle: 'Share this recipe',
-        subject: `${safePost.title || 'Delicious Recipe'} - Amazing Recipe`, // עבור אימייל
+        subject: `${safePost.title || 'Delicious Recipe'} - Amazing Recipe`,
       });
 
       if (result.action === Share.sharedAction) {
         console.log('Recipe shared successfully');
-        // אופציונלי: עדכון סטטיסטיקות שיתוף
         if (onShare) {
           onShare({
             ...safePost,
@@ -596,23 +514,12 @@ const PostComponent = ({
     }
   };
 
-
   const handleProfilePress = () => {
     if (navigation) {
       navigation.navigate('Profile', { 
         userId: safePost.userId || safePost.user?.id || safePost.user?._id 
       });
     }
-  };
-
-  const handleMediaTypeChange = (type) => {
-    setEditMediaType(type);
-    setEditData(prev => ({
-      ...prev,
-      mediaType: type,
-      image: type === 'image' ? prev.image : '',
-      video: type === 'video' ? prev.video : ''
-    }));
   };
 
   const handleImagePick = async () => {
@@ -633,11 +540,8 @@ const PostComponent = ({
       if (!result.canceled && result.assets[0]) {
         setEditData(prev => ({
           ...prev,
-          image: result.assets[0].uri,
-          video: '',
-          mediaType: 'image'
+          image: result.assets[0].uri
         }));
-        setEditMediaType('image');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick image');
@@ -645,95 +549,60 @@ const PostComponent = ({
     }
   };
 
-  const handleVideoPick = async () => {
+  const handleSaveEdit = async () => {
+    if (!editData.title.trim()) {
+      Alert.alert('Error', 'Please enter a recipe title');
+      return;
+    }
+
+    setIsUpdating(true);
+    
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Please grant camera roll permissions');
-        return;
+      let result;
+      let mediaUri = null;
+
+      if (editData.image && editData.image.startsWith('file://')) {
+        mediaUri = editData.image;
+        console.log('🖼️ New image detected for upload:', mediaUri);
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
-        allowsEditing: true,
-        quality: 0.8,
-      });
+      const updateData = {
+        ...editData,
+        userId: currentUserId
+      };
 
-      if (!result.canceled && result.assets[0]) {
-        setEditData(prev => ({
-          ...prev,
-          video: result.assets[0].uri,
-          image: '',
-          mediaType: 'video'
-        }));
-        setEditMediaType('video');
+      console.log('Saving edit with data:', {
+        title: updateData.title,
+        hasNewMedia: !!mediaUri,
+        mediaUri: mediaUri ? 'file://...' : 'none',
+        userId: updateData.userId
+      });
+      
+     result = await recipeService.updateRecipe(
+          postId, 
+          updateData, 
+          mediaUri, 
+          isActualGroupPost, 
+          effectiveGroupId  
+        );
+
+      if (result.success) {
+        setShowEditModal(false);
+        Alert.alert('Success', 'Recipe updated successfully!');
+        
+        if (onRefreshData) {
+          onRefreshData();
+        }
+      } else {
+        Alert.alert('Error', result.message || 'Failed to update recipe');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick video');
-      console.error('Video picker error:', error);
+      console.error('Update error:', error);
+      Alert.alert('Error', 'Failed to update recipe');
+    } finally {
+      setIsUpdating(false);
     }
   };
-
-  const handleSaveEdit = async () => {
-  if (!editData.title.trim()) {
-    Alert.alert('Error', 'Please enter a recipe title');
-    return;
-  }
-
-  setIsUpdating(true);
-  
-  try {
-    let result;
-    let mediaUri = null;
-    let mediaType = editData.mediaType;
-
-    if (editData.image && editData.image.startsWith('file://')) {
-      mediaUri = editData.image;
-      mediaType = 'image';
-      console.log('🖼️ New image detected for upload:', mediaUri);
-    } else if (editData.video && editData.video.startsWith('file://')) {
-      mediaUri = editData.video;
-      mediaType = 'video';
-      console.log('🎥 New video detected for upload:', mediaUri);
-    }
-
-    // 🆕 הוספת userId לנתונים
-    const updateData = {
-      ...editData,
-      userId: currentUserId  // 🔥 זה החסר!
-    };
-
-    console.log('💾 Saving edit with data:', {
-      title: updateData.title,
-      mediaType: mediaType,
-      hasNewMedia: !!mediaUri,
-      mediaUri: mediaUri ? 'file://...' : 'none',
-      userId: updateData.userId  // 🆕
-    });
-    
-    if (isActualGroupPost && effectiveGroupId) {
-      result = await groupService.updateGroupPost(effectiveGroupId, postId, updateData, mediaUri, mediaType);
-    } else {
-      result = await recipeService.updateRecipe(postId, updateData, mediaUri, mediaType);
-    }
-
-    if (result.success) {
-      setShowEditModal(false);
-      Alert.alert('Success', 'Recipe updated successfully!');
-      
-      if (onRefreshData) {
-        onRefreshData();
-      }
-    } else {
-      Alert.alert('Error', result.message || 'Failed to update recipe');
-    }
-  } catch (error) {
-    console.error('Update error:', error);
-    Alert.alert('Error', 'Failed to update recipe');
-  } finally {
-    setIsUpdating(false);
-  }
-};
 
   const renderComment = ({ item }) => {
     console.log('Comment data:', item); 
@@ -807,72 +676,56 @@ const PostComponent = ({
   };
 
   const renderShareModal = () => {
-    if (!showShareModal) return null;
-    
-    return (
-      <Modal
-        visible={showShareModal}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setShowShareModal(false)}
+  if (!showShareModal) return null;
+  
+  return (
+    <Modal
+      visible={showShareModal}
+      animationType="fade"
+      transparent={true}
+      onRequestClose={() => setShowShareModal(false)}
+    >
+      <TouchableOpacity 
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowShareModal(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowShareModal(false)}
-        >
-          <View style={styles.shareModal}>
-            <Text style={styles.shareModalTitle}>Share Recipe</Text>
-            
-            <TouchableOpacity 
-              style={styles.shareOptionItem} 
-              onPress={handleInternalShare}
-            >
-              <View style={styles.shareOptionIcon}>
-                <Ionicons name="people" size={24} color={FLAVORWORLD_COLORS.primary} />
-              </View>
-              <View style={styles.shareOptionContent}>
-                <Text style={styles.shareOptionTitle}>Share with FlavorWorld Friends</Text>
-                <Text style={styles.shareOptionSubtitle}>Send directly to friends and contacts</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={FLAVORWORLD_COLORS.textLight} />
-            </TouchableOpacity>
-            
-            <View style={styles.optionSeparator} />
-            
-            <TouchableOpacity 
-              style={styles.shareOptionItem} 
-              onPress={handleExternalShare}
-            >
-              <View style={styles.shareOptionIcon}>
-                <Ionicons name="share-outline" size={24} color={FLAVORWORLD_COLORS.secondary} />
-              </View>
-              <View style={styles.shareOptionContent}>
-                <Text style={styles.shareOptionTitle}>Share to Other Apps</Text>
-                <Text style={styles.shareOptionSubtitle}>WhatsApp, Instagram, Twitter, etc.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={FLAVORWORLD_COLORS.textLight} />
-            </TouchableOpacity>
-            
-            <View style={styles.optionSeparator} />
-            
-            <TouchableOpacity 
-              style={styles.shareOptionItem} 
-              onPress={() => setShowShareModal(false)}
-            >
-              <View style={styles.shareOptionIcon}>
-                <Ionicons name="close" size={24} color={FLAVORWORLD_COLORS.textLight} />
-              </View>
-              <View style={styles.shareOptionContent}>
-                <Text style={styles.shareOptionTitle}>Cancel</Text>
-                <Text style={styles.shareOptionSubtitle}>Close this menu</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    );
-  };
+        <View style={styles.shareModal}>
+          <Text style={styles.shareModalTitle}>Share Recipe</Text>
+          
+          <TouchableOpacity 
+            style={styles.shareOptionItem} 
+            onPress={handleInternalShare}
+          >
+            <View style={styles.shareOptionIcon}>
+              <Ionicons name="people" size={24} color={FLAVORWORLD_COLORS.primary} />
+            </View>
+            <View style={styles.shareOptionContent}>
+              <Text style={styles.shareOptionTitle}>Share with FlavorWorld Friends</Text>
+              <Text style={styles.shareOptionSubtitle}>Send directly to friends and contacts</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={FLAVORWORLD_COLORS.textLight} />
+          </TouchableOpacity>
+          
+          <View style={styles.optionSeparator} />
+          
+          <TouchableOpacity 
+            style={styles.shareOptionItem} 
+            onPress={() => setShowShareModal(false)}
+          >
+            <View style={styles.shareOptionIcon}>
+              <Ionicons name="close" size={24} color={FLAVORWORLD_COLORS.textLight} />
+            </View>
+            <View style={styles.shareOptionContent}>
+              <Text style={styles.shareOptionTitle}>Cancel</Text>
+              <Text style={styles.shareOptionSubtitle}>Close this menu</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+};
 
   const renderCommentsModal = () => (
     <Modal
@@ -1118,115 +971,31 @@ const PostComponent = ({
             />
           </View>
 
-          {/* Recipe Media */}
+          {/* Recipe Image */}
           <View style={styles.editField}>
-            <Text style={styles.editLabel}>Recipe Media</Text>
+            <Text style={styles.editLabel}>Recipe Image</Text>
             
-            {/* Media Type Buttons */}
-            <View style={styles.mediaTypeContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.mediaTypeCard,
-                  editMediaType === 'image' && styles.activeMediaTypeCard
-                ]}
-                onPress={() => handleMediaTypeChange('image')}
-              >
-                <View style={[
-                  styles.mediaTypeIcon,
-                  editMediaType === 'image' && styles.activeMediaTypeIcon
-                ]}>
-                  <Ionicons 
-                    name="camera-outline" 
-                    size={24} 
-                    color={editMediaType === 'image' ? FLAVORWORLD_COLORS.primary : FLAVORWORLD_COLORS.textLight} 
-                  />
+            <View style={styles.mediaUploadArea}>
+              {editData.image ? (
+                <View style={styles.editMediaPreview}>
+                  <Image source={{ uri: editData.image }} style={styles.editImagePreview} />
+                  <TouchableOpacity 
+                    style={styles.editMediaRemove}
+                    onPress={() => setEditData(prev => ({...prev, image: ''}))}
+                  >
+                    <Ionicons name="close" size={20} color={FLAVORWORLD_COLORS.white} />
+                  </TouchableOpacity>
                 </View>
-                <Text style={[
-                  styles.mediaTypeLabel,
-                  editMediaType === 'image' && styles.activeMediaTypeLabel
-                ]}>Photo</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.mediaTypeCard,
-                  editMediaType === 'video' && styles.activeMediaTypeCard
-                ]}
-                onPress={() => handleMediaTypeChange('video')}
-              >
-                <View style={[
-                  styles.mediaTypeIcon,
-                  editMediaType === 'video' && styles.activeMediaTypeIcon
-                ]}>
-                  <Ionicons 
-                    name="videocam-outline" 
-                    size={24} 
-                    color={editMediaType === 'video' ? FLAVORWORLD_COLORS.secondary : FLAVORWORLD_COLORS.textLight} 
-                  />
-                </View>
-                <Text style={[
-                  styles.mediaTypeLabel,
-                  editMediaType === 'video' && styles.activeMediaTypeLabel
-                ]}>Video</Text>
-              </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.mediaUploadButton} onPress={handleImagePick}>
+                  <View style={styles.mediaUploadIcon}>
+                    <Ionicons name="add" size={32} color={FLAVORWORLD_COLORS.primary} />
+                  </View>
+                  <Text style={styles.mediaUploadTitle}>Add a photo</Text>
+                  <Text style={styles.mediaUploadSubtitle}>Make your recipe come alive!</Text>
+                </TouchableOpacity>
+              )}
             </View>
-
-            {/* Media Preview/Upload Area */}
-            {editMediaType === 'image' && (
-              <View style={styles.mediaUploadArea}>
-                {editData.image ? (
-                  <View style={styles.editMediaPreview}>
-                    <Image source={{ uri: editData.image }} style={styles.editImagePreview} />
-                    <TouchableOpacity 
-                      style={styles.editMediaRemove}
-                      onPress={() => setEditData(prev => ({...prev, image: ''}))}
-                    >
-                      <Ionicons name="close" size={20} color={FLAVORWORLD_COLORS.white} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.mediaUploadButton} onPress={handleImagePick}>
-                    <View style={styles.mediaUploadIcon}>
-                      <Ionicons name="add" size={32} color={FLAVORWORLD_COLORS.primary} />
-                    </View>
-                    <Text style={styles.mediaUploadTitle}>Add a photo or video</Text>
-                    <Text style={styles.mediaUploadSubtitle}>Make your recipe come alive!</Text>
-                  </TouchableOpacity>
-                )  }
-              </View>
-            )}
-
-            {editMediaType === 'video' && (
-              <View style={styles.mediaUploadArea}>
-                {editData.video ? (
-                  <View style={styles.editMediaPreview}>
-                    <Video
-                      source={{ uri: editData.video }}
-                      rate={1.0}
-                      volume={0}
-                      isMuted={true}
-                      resizeMode="cover"
-                      shouldPlay={false}
-                      style={styles.editVideoPreview}
-                    />
-                    <TouchableOpacity 
-                      style={styles.editMediaRemove}
-                      onPress={() => setEditData(prev => ({...prev, video: ''}))}
-                    >
-                      <Ionicons name="close" size={20} color={FLAVORWORLD_COLORS.white} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <TouchableOpacity style={styles.mediaUploadButton} onPress={handleVideoPick}>
-                    <View style={styles.mediaUploadIcon}>
-                      <Ionicons name="add" size={32} color={FLAVORWORLD_COLORS.primary} />
-                    </View>
-                    <Text style={styles.mediaUploadTitle}>Add a photo or video</Text>
-                    <Text style={styles.mediaUploadSubtitle}>Make your recipe come alive!</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
           </View>
 
           <View style={{ height: 100 }} />
@@ -1292,6 +1061,7 @@ const PostComponent = ({
       </SafeAreaView>
     </Modal>
 );
+
   const renderFullRecipeModal = () => (
     <Modal
       visible={showFullRecipe}
@@ -1566,42 +1336,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 200,
     resizeMode: 'cover',
-  },
-  videoWrapper: {
-    position: 'relative',
-    width: '100%',
-    height: 200,
-    backgroundColor: FLAVORWORLD_COLORS.text,
-  },
-  recipeVideo: {
-    width: '100%',
-    height: '100%',
-  },
-  videoIndicator: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  videoIndicatorText: {
-    color: FLAVORWORLD_COLORS.white,
-    fontSize: 12,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  fullRecipeVideoWrapper: {
-    width: '100%',
-    height: 250,
-    backgroundColor: FLAVORWORLD_COLORS.text,
-  },
-  fullRecipeVideo: {
-    width: '100%',
-    height: '100%',
   },
   actions: {
     flexDirection: 'row',
@@ -2090,46 +1824,6 @@ modalItemTextSelected: {
     marginHorizontal: 8,
     fontWeight: '500',
   },
-  mediaTypeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  mediaTypeCard: {
-    flex: 0.48,
-    backgroundColor: FLAVORWORLD_COLORS.white,
-    borderWidth: 1,
-    borderColor: FLAVORWORLD_COLORS.border,
-    borderRadius: 12,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  activeMediaTypeCard: {
-    borderColor: FLAVORWORLD_COLORS.primary,
-    borderWidth: 2,
-  },
-  mediaTypeIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: FLAVORWORLD_COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  activeMediaTypeIcon: {
-    backgroundColor: FLAVORWORLD_COLORS.background,
-  },
-  mediaTypeLabel: {
-    fontSize: 14,
-    color: FLAVORWORLD_COLORS.textLight,
-    fontWeight: '500',
-  },
-  activeMediaTypeLabel: {
-    color: FLAVORWORLD_COLORS.text,
-    fontWeight: '600',
-  },
   mediaUploadArea: {
     marginTop: 10,
   },
@@ -2174,10 +1868,6 @@ modalItemTextSelected: {
     width: '100%',
     height: 200,
     resizeMode: 'cover',
-  },
-  editVideoPreview: {
-    width: '100%',
-    height: 200,
   },
   editMediaRemove: {
     position: 'absolute',

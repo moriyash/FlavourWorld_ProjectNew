@@ -55,7 +55,6 @@ const ChatConversationScreen = ({ route, navigation }) => {
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   
-  // 🆕 מצבים חדשים למתכון משותף
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   
@@ -338,13 +337,11 @@ const ChatConversationScreen = ({ route, navigation }) => {
     setShowImageModal(true);
   };
 
-  // 🆕 פונקציה לפתיחת פרטי המתכון
   const openRecipeModal = (recipeData) => {
     setSelectedRecipe(recipeData);
     setShowRecipeModal(true);
   };
 
-  // 🆕 פונקציה לעיצוב זמן בישול
   const formatTime = (minutes) => {
     if (!minutes || isNaN(minutes)) return '0m';
     const numMinutes = parseInt(minutes);
@@ -428,7 +425,6 @@ const ChatConversationScreen = ({ route, navigation }) => {
           );
         }
       
-      // 🆕 טיפול בהודעות מתכון משותף
       case 'shared_recipe':
         try {
           const messageData = JSON.parse(item.content);
@@ -440,7 +436,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
                 styles.messageText,
                 isMine ? styles.myMessageText : styles.otherMessageText
               ]}>
-                🍳 Recipe shared
+                 Recipe shared
               </Text>
             );
           }
@@ -507,7 +503,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
                   {recipeData.description || 'No description available'}
                 </Text>
                 
-                {/* מטא-דאטה */}
+                {/* דאטה */}
                 <View style={styles.recipeMessageMeta}>
                   <View style={styles.recipeMetaItem}>
                     <Ionicons name="time-outline" size={12} color={isMine ? FLAVORWORLD_COLORS.white : FLAVORWORLD_COLORS.textLight} />
@@ -543,7 +539,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
                     styles.personalMessage,
                     isMine ? styles.myMessageText : styles.otherMessageText
                   ]}>
-                    💬 "{recipeData.personalMessage}"
+                     "{recipeData.personalMessage}"
                   </Text>
                 )}
                 
@@ -552,7 +548,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
                   styles.tapToViewText,
                   isMine ? styles.myMessageTime : styles.otherMessageTime
                 ]}>
-                  👆 Tap to view full recipe
+                   Tap to view full recipe
                 </Text>
               </View>
               
@@ -571,7 +567,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
               styles.messageText,
               isMine ? styles.myMessageText : styles.otherMessageText
             ]}>
-              🍳 Recipe shared
+               Recipe shared
             </Text>
           );
         }
@@ -658,7 +654,6 @@ const ChatConversationScreen = ({ route, navigation }) => {
     );
   };
 
-  // 🆕 מודל פרטי המתכון
   const renderRecipeModal = () => {
     if (!showRecipeModal || !selectedRecipe) return null;
 
@@ -1020,7 +1015,7 @@ const ChatConversationScreen = ({ route, navigation }) => {
         </View>
       </Modal>
 
-      {/* 🆕 Recipe Modal */}
+      {/*  Recipe Modal */}
       {renderRecipeModal()}
     </SafeAreaView>
   );
@@ -1219,7 +1214,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   
-  // 🆕 סטיילים להודעות מתכון משותף
   recipeMessage: {
     minWidth: 250,
     maxWidth: 300,
@@ -1333,7 +1327,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  // 🆕 סטיילים למודל המתכון
   recipeModalContainer: {
     flex: 1,
     backgroundColor: FLAVORWORLD_COLORS.background,

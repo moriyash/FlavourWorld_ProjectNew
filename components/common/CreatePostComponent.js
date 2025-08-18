@@ -13,7 +13,6 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Video } from 'expo-av';
 import * as ImagePicker from 'expo-image-picker';
 import { recipeService } from '../../services/recipeService';
 import { groupService } from '../../services/GroupService';
@@ -57,8 +56,7 @@ const CreatePostComponent = ({
   const [prepTimeHours, setPrepTimeHours] = useState('');
   const [prepTimeMinutes, setPrepTimeMinutes] = useState('');
   const [servings, setServings] = useState('');
-  const [media, setMedia] = useState(null);
-  const [mediaType, setMediaType] = useState('none');
+  const [image, setImage] = useState(null);
 
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -112,43 +110,32 @@ const CreatePostComponent = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const pickMedia = async (type = 'image') => {
+  const pickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
         Alert.alert(
           'Permission Required', 
-          `Please allow access to your photo library to add ${type === 'video' ? 'videos' : 'images'}`
+          'Please allow access to your photo library to add images'
         );
         return;
       }
 
-      const mediaTypeOptions = type === 'video' 
-        ? ImagePicker.MediaTypeOptions.Videos 
-        : ImagePicker.MediaTypeOptions.Images;
-
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: mediaTypeOptions,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: type === 'video' ? undefined : [4, 3],
-        quality: type === 'video' ? 0.8 : 0.7,
-        videoMaxDuration: 60,
+        aspect: [4, 3],
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
-        setMedia(result.assets[0]);
-        setMediaType(type);
-        
-        console.log(`Selected ${type}:`, result.assets[0].uri);
-        
-        if (type === 'video') {
-          console.log('Video duration:', result.assets[0].duration);
-        }
+        setImage(result.assets[0]);
+        console.log('Selected image:', result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Media picker error:', error);
-      Alert.alert('Error', `Failed to pick ${type}`);
+      console.error('Image picker error:', error);
+      Alert.alert('Error', 'Failed to pick image');
     }
   };
 
@@ -178,16 +165,14 @@ const CreatePostComponent = ({
         userId: currentUser?.id || currentUser?._id || currentUser?.userId || 'unknown',
         userName: currentUser?.fullName || currentUser?.name || currentUser?.displayName || currentUser?.username || 'Anonymous Chef',
         userAvatar: currentUser?.avatar || currentUser?.userAvatar || null,
-        mediaType: mediaType,
-        media: media ? media.uri : null
+        image: image ? image.uri : null
       };
 
       console.log(' Recipe data with user info:', {
         userId: recipeData.userId,
         userName: recipeData.userName,
         userAvatar: recipeData.userAvatar,
-        mediaType: recipeData.mediaType,
-        hasMedia: !!recipeData.media,
+        hasImage: !!recipeData.image,
         isGroupPost,
         groupId
       });
@@ -196,15 +181,10 @@ const CreatePostComponent = ({
 
       if (isGroupPost) {
         console.log(' Creating group post...');
-        result = await groupService.createGroupPost(groupId, recipeData, media?.uri);
+        result = await groupService.createGroupPost(groupId, recipeData, image?.uri);
       } else {
         console.log(' Creating regular post...');
-        const regularRecipeData = {
-          ...recipeData,
-          mediaType: mediaType,
-          media: media ? media.uri : null
-        };
-        result = await recipeService.createRecipe(regularRecipeData);
+        result = await recipeService.createRecipe(recipeData);
       }
 
       if (result && result.success) {
@@ -227,8 +207,7 @@ const CreatePostComponent = ({
         setPrepTimeHours('');
         setPrepTimeMinutes('');
         setServings('');
-        setMedia(null);
-        setMediaType('none');
+        setImage(null);
         setErrors({});
         
         if (onPostCreated) {
@@ -461,73 +440,39 @@ const CreatePostComponent = ({
           {errors.instructions && <Text style={styles.errorText}>{errors.instructions}</Text>}
         </View>
 
-        {/*  Media Picker - Photo or Video */}
+        {/* Image Picker */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Recipe Media</Text>
+          <Text style={styles.label}>Recipe Image</Text>
           
-          {/* Media Type Selector */}
-          <View style={styles.mediaTypeSelector}>
-            <TouchableOpacity
-              style={[
-                styles.mediaTypeButton, 
-                mediaType === 'image' && styles.activeMediaType
-              ]}
-              onPress={() => pickMedia('image')}
-            >
-              <Ionicons name="camera-outline" size={20} color={FLAVORWORLD_COLORS.primary} />
-              <Text style={styles.mediaTypeText}>Photo</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[
-                styles.mediaTypeButton, 
-                mediaType === 'video' && styles.activeMediaType
-              ]}
-              onPress={() => pickMedia('video')}
-            >
-              <Ionicons name="videocam-outline" size={20} color={FLAVORWORLD_COLORS.secondary} />
-              <Text style={styles.mediaTypeText}>Video</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Media Preview */}
-          {media && (
-            <View style={styles.mediaPreview}>
-              {mediaType === 'image' ? (
-                <Image source={{ uri: media.uri }} style={styles.selectedImage} />
-              ) : mediaType === 'video' ? (
-                <Video
-                  source={{ uri: media.uri }}
-                  rate={1.0}
-                  volume={1.0}
-                  isMuted={false}
-                  resizeMode="contain"
-                  shouldPlay={false}
-                  isLooping={false}
-                  style={styles.selectedVideo}
-                  useNativeControls
-                />
-              ) : null}
+          {/* Image Preview */}
+          {image && (
+            <View style={styles.imagePreview}>
+              <Image source={{ uri: image.uri }} style={styles.selectedImage} />
               
               <TouchableOpacity
-                style={styles.removeMediaButton}
-                onPress={() => {
-                  setMedia(null);
-                  setMediaType('none');
-                }}
+                style={styles.removeImageButton}
+                onPress={() => setImage(null)}
               >
                 <Ionicons name="close-circle" size={24} color={FLAVORWORLD_COLORS.danger} />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Placeholder when no media */}
-          {!media && (
-            <View style={styles.mediaPlaceholder}>
-              <Ionicons name="add-circle-outline" size={40} color={FLAVORWORLD_COLORS.textLight} />
-              <Text style={styles.mediaPlaceholderText}>Add a photo or video</Text>
-              <Text style={styles.mediaPlaceholderSubtext}>Make your recipe come alive!</Text>
-            </View>
+          {/* Image Picker Button */}
+          {!image && (
+            <TouchableOpacity style={styles.imagePlaceholder} onPress={pickImage}>
+              <Ionicons name="camera-outline" size={40} color={FLAVORWORLD_COLORS.primary} />
+              <Text style={styles.imagePlaceholderText}>Add a photo</Text>
+              <Text style={styles.imagePlaceholderSubtext}>Make your recipe come alive!</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Replace Image Button */}
+          {image && (
+            <TouchableOpacity style={styles.changeImageButton} onPress={pickImage}>
+              <Ionicons name="camera-outline" size={20} color={FLAVORWORLD_COLORS.primary} />
+              <Text style={styles.changeImageText}>Change Photo</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -732,50 +677,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
     fontWeight: '600',
   },
-  mediaTypeSelector: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    gap: 12,
-  },
-  mediaTypeButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: FLAVORWORLD_COLORS.background,
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderWidth: 2,
-    borderColor: FLAVORWORLD_COLORS.border,
-  },
-  activeMediaType: {
-    borderColor: FLAVORWORLD_COLORS.primary,
-    backgroundColor: FLAVORWORLD_COLORS.white,
-  },
-  mediaTypeText: {
-    fontSize: 14,
-    color: FLAVORWORLD_COLORS.text,
-    marginLeft: 6,
-    fontWeight: '600',
-  },
-  mediaPreview: {
+  imagePreview: {
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
-    marginTop: 12,
+    marginBottom: 12,
   },
   selectedImage: {
-    width: 200,
-    height: 150,
+    width: 250,
+    height: 180,
     borderRadius: 12,
   },
-  selectedVideo: {
-    width: 200,
-    height: 150,
-    borderRadius: 12,
-  },
-  removeMediaButton: {
+  removeImageButton: {
     position: 'absolute',
     top: -10,
     right: -10,
@@ -787,27 +700,44 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
-  mediaPlaceholder: {
+  imagePlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: FLAVORWORLD_COLORS.border,
     borderStyle: 'dashed',
     borderRadius: 12,
-    paddingVertical: 30,
+    paddingVertical: 40,
     backgroundColor: FLAVORWORLD_COLORS.background,
-    marginTop: 12,
+    marginBottom: 12,
   },
-  mediaPlaceholderText: {
+  imagePlaceholderText: {
     fontSize: 16,
     color: FLAVORWORLD_COLORS.text,
     marginTop: 8,
     fontWeight: '600',
   },
-  mediaPlaceholderSubtext: {
+  imagePlaceholderSubtext: {
     fontSize: 14,
     color: FLAVORWORLD_COLORS.textLight,
     marginTop: 4,
+  },
+  changeImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: FLAVORWORLD_COLORS.background,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: FLAVORWORLD_COLORS.primary,
+  },
+  changeImageText: {
+    fontSize: 14,
+    color: FLAVORWORLD_COLORS.primary,
+    marginLeft: 6,
+    fontWeight: '600',
   },
   submitButton: {
     backgroundColor: FLAVORWORLD_COLORS.primary,

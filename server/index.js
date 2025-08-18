@@ -4059,6 +4059,7 @@ const GroupPostSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const GroupPost = mongoose.model('GroupPost', GroupPostSchema);
+
 const PrivateChatSchema = new mongoose.Schema({
   participants: [{
     userId: { type: String, required: true },
@@ -4093,6 +4094,7 @@ const MessageSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Message = mongoose.model('Message', MessageSchema);
+
 const RecipeSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -4143,16 +4145,6 @@ const RecipeSchema = new mongoose.Schema({
     maxlength: 10000000,
     default: null
   },
-  video: {
-    type: String,
-    maxlength: 50000000, 
-    default: null
-  },
-  mediaType: {
-    type: String,
-    enum: ['image', 'video', 'none'],
-    default: 'none'
-  },
   userId: {
     type: String, 
     required: true
@@ -4194,7 +4186,6 @@ const RecipeSchema = new mongoose.Schema({
   timestamps: true
 });
 
-
 const Recipe = mongoose.model('Recipe', RecipeSchema);
 
 const NotificationSchema = new mongoose.Schema({
@@ -4219,7 +4210,11 @@ const NotificationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const Notification = mongoose.model('Notification', NotificationSchema);
-app.put('/api/recipes/:id', upload.any(), async (req, res) => {
+
+app.put('/api/recipes/:id', upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'video', maxCount: 1 }
+]), async (req, res) => {
   try {
     console.log(' Editing recipe...');
     console.log('Recipe ID:', req.params.id);
@@ -4256,34 +4251,23 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
     let videoData = recipe.video;
     let mediaType = formData.mediaType || recipe.mediaType || 'none';
 
-    if (req.files && req.files.length > 0) {
-      const videoFile = req.files.find(file => 
-        file.fieldname === 'video' || 
-        file.mimetype.startsWith('video/')
-      );
-      
-      if (videoFile) {
-        console.log(' New video uploaded, size:', videoFile.size);
-        const base64Video = videoFile.buffer.toString('base64');
-        videoData = `data:${videoFile.mimetype};base64,${base64Video}`;
-        imageData = null; 
-        mediaType = 'video';
-        console.log(' Video updated, length:', videoData.length);
-      } else {
-        const imageFile = req.files.find(file =>
-          file.fieldname === 'image' ||
-          file.mimetype.startsWith('image/')
-        );
-        
-        if (imageFile) {
-          console.log('New image uploaded, size:', imageFile.size);
-          const base64Image = imageFile.buffer.toString('base64');
-          imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
-          videoData = null; 
-          mediaType = 'image';
-          console.log(' Image updated, length:', imageData.length);
-        }
-      }
+    const videoFile = req.files?.video?.[0];
+    const imageFile = req.files?.image?.[0];
+
+    if (videoFile) {
+      console.log(' New video uploaded, size:', videoFile.size);
+      const base64Video = videoFile.buffer.toString('base64');
+      videoData = `data:${videoFile.mimetype};base64,${base64Video}`;
+      imageData = null; 
+      mediaType = 'video';
+      console.log(' Video updated, length:', videoData.length);
+    } else if (imageFile) {
+      console.log('New image uploaded, size:', imageFile.size);
+      const base64Image = imageFile.buffer.toString('base64');
+      imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
+      videoData = null; 
+      mediaType = 'image';
+      console.log(' Image updated, length:', imageData.length);
     } else {
       if (formData.video && formData.video !== recipe.video) {
         console.log(' Video updated from form data');
@@ -4369,6 +4353,8 @@ app.put('/api/recipes/:id', upload.any(), async (req, res) => {
     });
   }
 });
+
+
 app.get('/api/recipes', async (req, res) => {
   try {
     if (!isMongoConnected()) {
@@ -4450,71 +4436,35 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
     console.log('Validation passed:', { category, meatType, prepTime, servings });
     
     let imageData = null;
-    let videoData = null;
-    let mediaType = formData.mediaType || 'none';
     
     if (req.files && req.files.length > 0) {
-      const videoFile = req.files.find(file => 
-        file.fieldname === 'video' || 
-        file.mimetype.startsWith('video/')
+      const imageFile = req.files.find(file => 
+        file.fieldname === 'image' || 
+        file.mimetype.startsWith('image/')
       );
       
-      if (videoFile) {
-        console.log(' Video file found:', {
-          fieldname: videoFile.fieldname,
-          originalname: videoFile.originalname,
-          mimetype: videoFile.mimetype,
-          size: videoFile.size
+      if (imageFile) {
+        console.log(' Image file found:', {
+          fieldname: imageFile.fieldname,
+          originalname: imageFile.originalname,
+          mimetype: imageFile.mimetype,
+          size: imageFile.size
         });
         
-        if (videoFile.size > 50 * 1024 * 1024) {
-          console.log('ERROR: Video file too large:', videoFile.size);
-          return res.status(413).json({ message: 'Video file too large. Maximum size is 50MB.' });
+        if (imageFile.size > 10 * 1024 * 1024) {
+          console.log('ERROR: Image file too large:', imageFile.size);
+          return res.status(413).json({ message: 'Image file too large. Maximum size is 10MB.' });
         }
         
-        const base64Video = videoFile.buffer.toString('base64');
-        videoData = `data:${videoFile.mimetype};base64,${base64Video}`;
-        mediaType = 'video';
-        console.log(' Video converted to base64, length:', videoData.length);
-      }
-      
-      if (!videoData) {
-        const imageFile = req.files.find(file => 
-          file.fieldname === 'image' || 
-          file.mimetype.startsWith('image/')
-        );
-        
-        if (imageFile) {
-          console.log(' Image file found:', {
-            fieldname: imageFile.fieldname,
-            originalname: imageFile.originalname,
-            mimetype: imageFile.mimetype,
-            size: imageFile.size
-          });
-          
-          if (imageFile.size > 10 * 1024 * 1024) {
-            console.log('ERROR: Image file too large:', imageFile.size);
-            return res.status(413).json({ message: 'Image file too large. Maximum size is 10MB.' });
-          }
-          
-          const base64Image = imageFile.buffer.toString('base64');
-          imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
-          mediaType = 'image';
-          console.log(' Image converted to base64, length:', imageData.length);
-        }
+        const base64Image = imageFile.buffer.toString('base64');
+        imageData = `data:${imageFile.mimetype};base64,${base64Image}`;
+        console.log(' Image converted to base64, length:', imageData.length);
       }
     }
     
-    if (!imageData && !videoData) {
-      if (formData.image) {
-        imageData = formData.image;
-        mediaType = 'image';
-        console.log(' Using image data from form field');
-      } else if (formData.video) {
-        videoData = formData.video;
-        mediaType = 'video';
-        console.log(' Using video data from form field');
-      }
+    if (!imageData && formData.image) {
+      imageData = formData.image;
+      console.log(' Using image data from form field');
     }
     
     const userName = formData.userName || 'Anonymous Chef';
@@ -4535,8 +4485,6 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
       prepTime: prepTime,
       servings: servings,
       image: imageData, 
-      video: videoData,
-      mediaType: mediaType,
       userId: userId,
       userName: userName,
       userAvatar: formData.userAvatar || null,
@@ -4552,9 +4500,7 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
       servings: recipeData.servings,
       userId: recipeData.userId,
       userName: recipeData.userName,
-      image: imageData ? `[Base64 image: ${imageData.length} chars]` : null,
-      video: videoData ? `[Base64 video: ${videoData.length} chars]` : null,
-      mediaType: mediaType
+      image: imageData ? `[Base64 image: ${imageData.length} chars]` : null
     });
     
     const recipe = new Recipe(recipeData);
@@ -4590,7 +4536,7 @@ app.post('/api/recipes', upload.any(), async (req, res) => {
         details: error.errors
       });
     } else if (error.message.includes('too large')) {
-      res.status(413).json({ message: 'Media file too large - please use a smaller file' });
+      res.status(413).json({ message: 'Image file too large - please use a smaller image' });
     } else {
       res.status(500).json({ 
         message: 'Failed to create recipe',
@@ -4621,7 +4567,6 @@ app.get('/api/recipes/:id', async (req, res) => {
     }
 
     console.log(' Found recipe:', recipe.title);
-    console.log(' Recipe media type:', recipe.mediaType || 'legacy');
 
     const user = await User.findById(recipe.userId);
     const recipeObj = recipe.toObject();
@@ -4631,16 +4576,12 @@ app.get('/api/recipes/:id', async (req, res) => {
       userName: user ? user.fullName : 'Unknown User',
       userAvatar: user ? user.avatar : null,
       userBio: user ? user.bio : null,
-      mediaType: recipeObj.mediaType || (recipeObj.image ? 'image' : recipeObj.video ? 'video' : 'none'),
-      video: recipeObj.video || null,
       image: recipeObj.image || null
     };
 
     console.log(' Recipe data enriched successfully');
-    console.log(' Final media info:', {
-      mediaType: enrichedRecipe.mediaType,
-      hasImage: !!enrichedRecipe.image,
-      hasVideo: !!enrichedRecipe.video
+    console.log(' Image info:', {
+      hasImage: !!enrichedRecipe.image
     });
 
     res.json(enrichedRecipe);
@@ -4672,9 +4613,7 @@ app.delete('/api/recipes/:id', async (req, res) => {
 
     console.log(' Recipe to delete info:', {
       title: recipeToDelete.title,
-      mediaType: recipeToDelete.mediaType || 'legacy',
       hasImage: !!recipeToDelete.image,
-      hasVideo: !!recipeToDelete.video,
       userId: recipeToDelete.userId
     });
 
@@ -4692,8 +4631,7 @@ app.delete('/api/recipes/:id', async (req, res) => {
       message: 'Recipe deleted successfully',
       deletedRecipe: {
         id: deletedRecipe._id,
-        title: deletedRecipe.title,
-        mediaType: deletedRecipe.mediaType
+        title: deletedRecipe.title
       }
     });
   } catch (error) {
@@ -4701,7 +4639,6 @@ app.delete('/api/recipes/:id', async (req, res) => {
     res.status(500).json({ message: 'Failed to delete recipe' });
   }
 });
-
   app.post('/api/recipes/:id/comments', async (req, res) => {
   try {
     if (!isMongoConnected()) {

@@ -549,7 +549,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: FLAVORWORLD_COLORS.border,
   },
-  // סטיילים לצ'אט קבוצתי
   groupAvatarContainer: {
     width: 50,
     height: 50,

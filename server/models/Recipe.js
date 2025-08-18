@@ -25,7 +25,7 @@ const recipeSchema = new mongoose.Schema({
       'Asian', 'Italian', 'Mexican', 'Indian', 'Mediterranean', 
       'American', 'French', 'Chinese', 'Japanese', 'Thai', 
       'Middle Eastern', 'Greek', 'Spanish', 'Korean', 'Vietnamese', 
-      'Dessert' // 🔧 הוספתי Dessert שחסר!
+      'Dessert' 
     ]
   },
   meatType: {
@@ -39,34 +39,30 @@ const recipeSchema = new mongoose.Schema({
   prepTime: {
     type: Number,
     required: true,
-    min: 0 // 🔧 שינוי מ-1 ל-0
+    min: 0 
   },
   servings: {
     type: Number,
     required: true,
     min: 1
   },
-  // 🖼️ תמונה
   image: {
     type: String,
-    maxlength: 10000000, // 🔧 הוספתי maxlength לbase64
+    maxlength: 10000000, 
     default: null
   },
-  // 🎥 וידאו - שדה חדש!
   video: {
     type: String,
-    maxlength: 50000000, // גדול יותר לוידאו
+    maxlength: 50000000, 
     default: null
   },
-  // 📱 סוג מדיה - שדה חדש!
   mediaType: {
     type: String,
     enum: ['image', 'video', 'none'],
     default: 'none'
   },
-  // 🔧 שינוי userId ל-String במקום ObjectId
   userId: {
-    type: String, // שינוי מ-ObjectId
+    type: String, 
     required: true
   },
   userName: {
@@ -78,11 +74,11 @@ const recipeSchema = new mongoose.Schema({
     default: null
   },
   likes: [{
-    type: String // 🔧 שינוי מ-ObjectId ל-String
+    type: String 
   }],
   comments: [{
     userId: {
-      type: String, // 🔧 שינוי מ-ObjectId ל-String
+      type: String, 
       required: true
     },
     userName: {

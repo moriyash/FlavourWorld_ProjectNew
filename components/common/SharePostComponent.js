@@ -471,7 +471,7 @@ const SharePostComponent = ({
                 style={styles.previewVideo}
               />
               <View style={styles.videoPreviewOverlay}>
-                <Text style={styles.videoPlayIcon}>▶️</Text>
+                <Text style={styles.videoPlayIcon}>▶</Text>
               </View>
             </View>
           )}
@@ -483,7 +483,7 @@ const SharePostComponent = ({
             <Text numberOfLines={2} style={styles.previewText}>
               {post.description || post.text || 'No description available'}
             </Text>
-            {/*  הצגת פרטים נוספים */}
+            {/*  more details*/}
             <View style={styles.previewMeta}>
               <Text style={styles.previewMetaText}>
                 ⏱ {post.prepTime || 0}min •  {post.servings || 0} servings
@@ -494,7 +494,7 @@ const SharePostComponent = ({
             </View>
           </View>
           
-          {/* Placeholder אם אין מדיה */}
+          {/* Placeholder if there is no media*/}
           {!hasImage && !hasVideo && (
             <View style={styles.noMediaPlaceholder}>
               <Ionicons name="restaurant-outline" size={40} color={FLAVORWORLD_COLORS.textLight} />
